@@ -8,5 +8,5 @@ fn main(){
     if a > c {
         println!("a > c");
     }
-    else {println!("a < c");}
+    else {println!("a < c")}
 }

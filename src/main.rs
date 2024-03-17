@@ -13,7 +13,10 @@ fn main() {
        process::exit(1)
     });
 
-    let tokens = tokenise(input);
+    let tokens = tokenise(input).unwrap_or_else(|e| {
+        eprintln!("Error {e}");
+        process::exit(1)
+    });
 
     println!("{:?}",tokens)
         
