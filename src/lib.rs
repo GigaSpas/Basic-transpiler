@@ -1,4 +1,6 @@
 use regex::Regex;
+use std::error::Error;
+use std::fs::File;
 
 ///////////////
 ///TOKENISER///
@@ -148,3 +150,66 @@ fn is_whitespace(str: &String) -> bool {
 
     whitespace.is_match(str)
 }
+
+////////////
+///PARSER///
+////////////
+
+#[derive(Debug)]
+pub enum Node {
+    Program(Vec<Node>),
+    StringLiteral(String),
+    NumberLiteral(usize),
+    Symbol(Symbol),
+    Veriable{name: String, value: String},
+    VeriableCall(String),
+    IfStatement{condition: Vec<Node>, body: Vec<Node>},
+    ElseStatement{condition: Vec<Node>, body: Vec<Node>},
+    ForLoop{var_name: String, start: String, end: String, body: Vec<Node>},
+    WhileLoop{condition: Vec<Node>, body: Vec<Node>},
+    Function{name: String, input: String, body: Vec<Node>},
+    FunctionCall{name: String, input: String},
+}
+
+
+pub fn parser(tokens: Vec<Token>) -> Result<Node, Box<dyn Error>>{
+    let mut ast: Vec<Node> = Vec::new();
+    let mut i = 0;
+
+    while i < tokens.len() {
+        let mut curr_token = &tokens[i];
+
+        if let Token::Char(a) = curr_token {
+
+            if a == "let"{
+                let mut name = String::new();
+                let value;
+                i += 1;
+                curr_token = &tokens[i];
+                if let Token::Char(b) = curr_token {
+                    name = b.to_string();
+                }
+                else{ return Err(format!("Parser: Expected char got: {:?}",curr_token).into())}
+
+                i += 2;
+                curr_token = &tokens[i];
+
+                match curr_token {
+                    Token::Char(c) => value = c.to_string(),
+                    Token::Number(n) => value = n.to_string(),
+                    Token::String(s) => value = s.to_string(),
+                    _ => return Err(format!("Parser: Expected Char/String/Number got: {:?}", curr_token).into())
+                }
+                i += 1;
+                ast.push(Node::Veriable{name, value});
+                continue;
+            }    
+
+
+        }
+    }
+    
+    Ok(Node::Program(ast))
+
+}
+
