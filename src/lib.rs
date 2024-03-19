@@ -1,18 +1,18 @@
 use regex::Regex;
 use std::error::Error;
-use std::fs::File;
+//use std::fs::File;
 
 ///////////////
 ///TOKENISER///
 ///////////////
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Bracket{
     Curly,
     Square,
     Paren,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Symbol{
     Equals,
     Plus,
@@ -26,7 +26,7 @@ pub enum Symbol{
     SemiColon,
     Exclamation,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Token{
     BracketClose(Bracket),
     BracketOpen(Bracket),
@@ -159,7 +159,7 @@ fn is_whitespace(str: &String) -> bool {
 pub enum Node {
     Program(Vec<Node>),
     StringLiteral(String),
-    NumberLiteral(usize),
+    NumberLiteral(String),
     Symbol(Symbol),
     Veriable{name: String, value: String},
     VeriableCall(String),
@@ -172,9 +172,9 @@ pub enum Node {
 }
 
 
-pub fn parser(tokens: Vec<Token>) -> Result<Node, Box<dyn Error>>{
+pub fn parser(start: usize, tokens: Vec<Token>) -> Result<Node, Box<dyn Error>>{
     let mut ast: Vec<Node> = Vec::new();
-    let mut i = 0;
+    let mut i = start;
 
     while i < tokens.len() {
         let mut curr_token = &tokens[i];
@@ -182,7 +182,7 @@ pub fn parser(tokens: Vec<Token>) -> Result<Node, Box<dyn Error>>{
         if let Token::Char(a) = curr_token {
 
             if a == "let"{
-                let mut name = String::new();
+                let name;
                 let value;
                 i += 1;
                 curr_token = &tokens[i];
@@ -205,8 +205,45 @@ pub fn parser(tokens: Vec<Token>) -> Result<Node, Box<dyn Error>>{
                 continue;
             }    
 
+            if a == "if"{
+                let mut condition: Vec<Node>= vec!();
+                i += 1;
+                curr_token = &tokens[i];
+
+                while !matches!(*curr_token, Token::BracketOpen(Bracket::Curly)){
+                    match curr_token{
+                        Token::Number(n) => condition.push(Node::NumberLiteral(n.to_string())),
+                        Token::String(s) => condition.push(Node::StringLiteral(s.to_string())),
+                        Token::Char(c) => condition.push(Node::VeriableCall(c.to_string())),
+                        Token::Symbol(s) => condition.push(Node::Symbol(*s)),
+                        _ => return Err(format!("Parser: Expected Char/String/Number got: {:?}", curr_token).into())
+                    }
+                    i += 1;
+                    curr_token = &tokens[i];
+                }
+
+                i += 1;
+                println!("reached");
+                let result= parser(i, tokens.to_vec())?;
+                match result{
+                    Node::Program(body) => ast.push(Node::IfStatement{condition, body}),
+                    _ => return Err("Error".into())
+                }
+
+                while !matches!(curr_token, Token::BracketClose(Bracket::Curly)){
+                    i += 1;
+                    curr_token = &tokens[i];
+                }
+
+                continue;
+            }
+
 
         }
+            match curr_token {
+                Token::BracketClose(_) => return Ok(Node::Program(ast)),
+                _ => return Err(format!("Error {:?} --- {:?}", ast, curr_token).into())
+            }
     }
     
     Ok(Node::Program(ast))

@@ -18,11 +18,12 @@ fn main() {
         process::exit(1)
     });
 
-    let ast = parser(tokens).unwrap_or_else(|e| {
+    println!("{:?}",tokens);
+    let ast = parser(0, tokens).unwrap_or_else(|e| {
         eprintln!("Error {e}");
         process::exit(1)
     });
 
-    println!("{:?}",ast)
+    println!("{:?}",ast);
         
 }
