@@ -164,15 +164,19 @@ pub enum Node {
     Veriable{name: String, value: String},
     VeriableCall(String),
     IfStatement{condition: Vec<Node>, body: Vec<Node>},
-    ElseStatement{condition: Vec<Node>, body: Vec<Node>},
+    ElseStatement{body: Vec<Node>},
     ForLoop{var_name: String, start: String, end: String, body: Vec<Node>},
     WhileLoop{condition: Vec<Node>, body: Vec<Node>},
-    Function{name: String, input: String, body: Vec<Node>},
-    FunctionCall{name: String, input: String},
+    Function{name: String, input: Vec<Node>, body: Vec<Node>},
+    FunctionCall{name: String, input: Vec<Node>},
 }
 
+pub struct Output {
+    pub node: Node,
+    end_num: usize,
+}
 
-pub fn parser(start: usize, tokens: Vec<Token>) -> Result<Node, Box<dyn Error>>{
+pub fn parser(start: usize, tokens: Vec<Token>) -> Result<Output, Box<dyn Error>>{
     let mut ast: Vec<Node> = Vec::new();
     let mut i = start;
 
@@ -206,6 +210,7 @@ pub fn parser(start: usize, tokens: Vec<Token>) -> Result<Node, Box<dyn Error>>{
             }    
 
             if a == "if"{
+                // Create the condition
                 let mut condition: Vec<Node>= vec!();
                 i += 1;
                 curr_token = &tokens[i];
@@ -221,32 +226,68 @@ pub fn parser(start: usize, tokens: Vec<Token>) -> Result<Node, Box<dyn Error>>{
                     i += 1;
                     curr_token = &tokens[i];
                 }
-
                 i += 1;
-                println!("reached");
+                // Creat the body of the statement
                 let result= parser(i, tokens.to_vec())?;
-                match result{
+                match result.node{
                     Node::Program(body) => ast.push(Node::IfStatement{condition, body}),
                     _ => return Err("Error".into())
                 }
+                i = result.end_num + 1;
 
-                while !matches!(curr_token, Token::BracketClose(Bracket::Curly)){
+                continue;
+            }
+
+            if a == "else"{
+                i += 2;
+                // Creat the body of the statement
+                let result= parser(i, tokens.to_vec())?;
+                match result.node{
+                    Node::Program(body) => ast.push(Node::ElseStatement{body}),
+                    _ => return Err("Error".into())
+                }
+                i = result.end_num + 1;
+
+                continue;
+            }
+
+            if a == "while"{
+                // Create the condition
+                let mut condition: Vec<Node>= vec!();
+                i += 1;
+                curr_token = &tokens[i];
+
+                while !matches!(*curr_token, Token::BracketOpen(Bracket::Curly)){
+                    match curr_token{
+                        Token::Number(n) => condition.push(Node::NumberLiteral(n.to_string())),
+                        Token::String(s) => condition.push(Node::StringLiteral(s.to_string())),
+                        Token::Char(c) => condition.push(Node::VeriableCall(c.to_string())),
+                        Token::Symbol(s) => condition.push(Node::Symbol(*s)),
+                        _ => return Err(format!("Parser: Expected Char/String/Number got: {:?}", curr_token).into())
+                    }
                     i += 1;
                     curr_token = &tokens[i];
                 }
+                i += 1;
+                // Creat the body of the statement
+                let result= parser(i, tokens.to_vec())?;
+                match result.node{
+                    Node::Program(body) => ast.push(Node::IfStatement{condition, body}),
+                    _ => return Err("Error".into())
+                }
+                i = result.end_num + 1;
 
                 continue;
             }
 
 
+
         }
             match curr_token {
-                Token::BracketClose(_) => return Ok(Node::Program(ast)),
+                Token::BracketClose(_) => return Ok(Output{node: Node::Program(ast), end_num: i}),
                 _ => return Err(format!("Error {:?} --- {:?}", ast, curr_token).into())
             }
     }
-    
-    Ok(Node::Program(ast))
-
+    Ok(Output{node: Node::Program(ast), end_num: i})
 }
 
