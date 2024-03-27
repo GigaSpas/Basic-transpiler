@@ -25,6 +25,8 @@ pub enum Symbol {
     Dot,
     SemiColon,
     Exclamation,
+    DoubleDot,
+    Colon,
 }
 #[derive(Debug, Clone)]
 pub enum Token {
@@ -151,8 +153,18 @@ pub fn tokenise(input: String) -> Result<Vec<Token>, String> {
                 i += 1;
                 continue;
             }
+            ',' => {
+                tokens.push(Token::Symbol(Symbol::Colon));
+                i += 1;
+                continue;
+            }
             ';' => {
                 tokens.push(Token::Symbol(Symbol::SemiColon));
+                i += 1;
+                continue;
+            }
+            ':' => {
+                tokens.push(Token::Symbol(Symbol::DoubleDot));
                 i += 1;
                 continue;
             }
@@ -258,6 +270,7 @@ pub enum Node {
         name: String,
         input: Vec<Node>,
     },
+    NewLine,
 }
 
 pub struct Output {
@@ -461,8 +474,138 @@ pub fn parser(start: usize, tokens: Vec<Token>) -> Result<Output, Box<dyn Error>
 
                 continue;
             }
+
+            if a == "fn" {
+                // Create the condition
+                i += 1;
+                curr_token = &tokens[i];
+                let name;
+                if let Token::Char(c) = curr_token {
+                    name = c.to_string();
+                } else {
+                    return Err(format!("Parser: Expected Char got: {:?}", curr_token).into());
+                }
+
+                i += 2;
+                curr_token = &tokens[i];
+
+                let mut input = Vec::new();
+                while !matches!(*curr_token, Token::BracketOpen(Bracket::Curly)) {
+                    curr_token = &tokens[i];
+                    println!("{i} {:?}", curr_token);
+                    match curr_token {
+                        Token::Char(c) => input.push(Node::VeriableCall(c.to_string())),
+                        Token::Symbol(Symbol::Colon) => {
+                            i += 1;
+                            continue;
+                        }
+                        Token::BracketClose(Bracket::Paren) => {
+                            i += 1;
+                            break;
+                        }
+                        _ => {
+                            return Err(format!(
+                                "Parser Function: Expected Char/Colon/ParenOpen got: {:?} {i}",
+                                curr_token
+                            )
+                            .into())
+                        }
+                    }
+                    i += 3;
+                }
+
+                i += 1;
+                // Creat the body of the statement
+                let result = parser(i, tokens.to_vec())?;
+                match result.node {
+                    Node::Program(body) => ast.push(Node::Function { name, input, body }),
+                    _ => {
+                        return Err(
+                            format!("Parser: Could not parse body: {:?} {i}", curr_token).into(),
+                        )
+                    }
+                }
+                i = result.end_num + 2;
+
+                continue;
+            }
+
+            // Handle Function calls
+            if let Token::BracketOpen(Bracket::Paren) = tokens[i + 1] {
+                let name;
+                match curr_token {
+                    Token::Char(c) => name = c.to_string(),
+                    _ => return Err(format!("Parser: Expected Char got: {:?}", curr_token).into()),
+                }
+
+                i += 2;
+                curr_token = &tokens[i];
+
+                let mut input = Vec::new();
+                while !matches!(*curr_token, Token::BracketClose(Bracket::Paren)) {
+                    match curr_token {
+                        Token::Char(c) => {
+                            input.push(Node::VeriableCall(c.to_string()));
+                            i += 1;
+                        }
+                        Token::Number(c) => {
+                            input.push(Node::NumberLiteral(c.to_string()));
+                            i += 1;
+                        }
+                        Token::String(c) => {
+                            input.push(Node::StringLiteral(c.to_string()));
+                            i += 1;
+                        }
+                        Token::Symbol(Symbol::Colon) => i += 1,
+                        Token::BracketClose(Bracket::Paren) => i += 1,
+                        _ => {
+                            return Err(format!(
+                                "Parser: Expected Char/Number/String/Colon/ParenOpen got: {:?}",
+                                curr_token
+                            )
+                            .into())
+                        }
+                    }
+                    curr_token = &tokens[i]
+                }
+                ast.push(Node::FunctionCall { name, input });
+                continue;
+            }
+            // Handle var calls
+            else {
+                ast.push(Node::VeriableCall(a.to_string()));
+                i += 1;
+                curr_token = &tokens[i];
+                while !matches!(*curr_token, Token::Symbol(Symbol::SemiColon)) {
+                    match curr_token {
+                        Token::Char(c) => ast.push(Node::StringLiteral(c.to_string())),
+                        Token::Number(n) => ast.push(Node::StringLiteral(n.to_string())),
+                        Token::String(s) => ast.push(Node::StringLiteral(s.to_string())),
+                        Token::Symbol(s) => ast.push(Node::Symbol(*s)),
+                        _ => {
+                            return Err(format!(
+                                "Parser: Expected Char/Number/String/ got: {:?}",
+                                curr_token
+                            )
+                            .into())
+                        }
+                    }
+                    i += 1;
+                    curr_token = &tokens[i];
+                }
+
+                println!("{i}");
+                continue;
+            }
         }
+
+        println!("{i}");
+        println!("{:?}", curr_token);
         match curr_token {
+            Token::Symbol(Symbol::SemiColon) => {
+                ast.push(Node::NewLine);
+                i += 1
+            }
             Token::BracketClose(_) => {
                 return Ok(Output {
                     node: Node::Program(ast),

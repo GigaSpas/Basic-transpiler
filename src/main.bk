@@ -1,6 +1,6 @@
 use std::process;
 
-use basic_compiler::{parser, tokenise};
+use basic_compiler::{tokenise, parser};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -9,8 +9,8 @@ fn main() {
         process::exit(1);
     }
     let input = std::fs::read_to_string(&args[1]).unwrap_or_else(|_| {
-        eprintln!("Invalid file path");
-        process::exit(1)
+       eprintln!("Invalid file path");
+       process::exit(1)
     });
 
     let tokens = tokenise(input).unwrap_or_else(|e| {
@@ -18,11 +18,12 @@ fn main() {
         process::exit(1)
     });
 
-    println!("{:?}", tokens);
+    println!("{:?}",tokens);
     let ast = parser(0, tokens).unwrap_or_else(|e| {
         eprintln!("Error {e}");
         process::exit(1)
     });
 
-    println!("{:?}", ast.node);
+    println!("{:?}",ast.node);
+        
 }
