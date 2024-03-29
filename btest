@@ -1,10 +1,9 @@
 fn main(test: usize, a: t) {
-let a = 10;
-if a == 2 {
-let b = a;
+let c = 2+ 2;
+while a = 3 {
+a = a+ 1;
 }
-main(a, 1)
+if a == b{
+a = a + 1;
 }
-fn test(a: usize){
-a= va;
 }

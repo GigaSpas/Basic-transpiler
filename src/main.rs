@@ -1,6 +1,6 @@
 use std::process;
 
-use basic_compiler::{parser, tokenise};
+use basic_compiler::{parser, tokenise, code_generator};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -23,6 +23,10 @@ fn main() {
         eprintln!("Error {e}");
         process::exit(1)
     });
+    let program = code_generator(ast.node).unwrap_or_else(|e| {
+        eprintln!("Error {e}");
+        process::exit(1)
+    });
 
-    println!("{:?}", ast.node);
+    println!("{}", program);
 }
