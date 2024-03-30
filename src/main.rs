@@ -1,14 +1,16 @@
+use std::fs;
+use std::io::prelude::*;
 use std::process;
 
-use basic_compiler::{parser, tokenise, code_generator};
+use basic_compiler::{code_generator, parser, tokenise};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    if args.len() != 2 {
-        eprintln!("Expected 1 argument recieved {}", args.len() - 1);
+    if args.len() != 3 {
+        eprintln!("Expected 2 argument recieved {}", args.len() - 1);
         process::exit(1);
     }
-    let input = std::fs::read_to_string(&args[1]).unwrap_or_else(|_| {
+    let input = fs::read_to_string(&args[1]).unwrap_or_else(|_| {
         eprintln!("Invalid file path");
         process::exit(1)
     });
@@ -18,7 +20,6 @@ fn main() {
         process::exit(1)
     });
 
-    println!("{:?}", tokens);
     let ast = parser(0, tokens).unwrap_or_else(|e| {
         eprintln!("Error {e}");
         process::exit(1)
@@ -28,5 +29,13 @@ fn main() {
         process::exit(1)
     });
 
-    println!("{}", program);
+    let mut file = fs::File::create(&args[2]).unwrap_or_else(|e| {
+        eprintln!("Error {e}");
+        process::exit(1)
+    });
+
+    file.write_all(program.as_bytes()).unwrap_or_else(|e| {
+        eprintln!("Error {e}");
+        process::exit(1)
+    });
 }

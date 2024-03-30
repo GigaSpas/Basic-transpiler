@@ -1,9 +1,13 @@
-fn main(test: usize, a: t) {
-let c = 2+ 2;
-while a = 3 {
-a = a+ 1;
+fn main () {
+  let a = 5;
+  let b = 10;
+  while a <= b{
+    if a < 0{
+    a = a+1;
+    }
+    else {
+    a = a+1;
+    }
+  } 
 }
-if a == b{
-a = a + 1;
-}
-}
+
