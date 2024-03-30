@@ -12,7 +12,7 @@ The executable can be renamed freely
 Example:
 
     $basic-transpiler source.rs output.js
-##Building
+## Building
 To build the project simply install rust via rustup, copy the repo and run:
 
     $cargo build --release
